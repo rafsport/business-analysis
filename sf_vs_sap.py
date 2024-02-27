@@ -1,4 +1,29 @@
 import win32com.client as client
+from PIL import ImageGrab
+from directories import *
+
+workbook_path = dashboard_inflow_canali_prodotti+r"\Condivisi\Dashboard inflow - Confronto SFDC vs. SAP.xlsb"
+
+File = client.Dispatch("Excel.Application")
+Workbook = File.Workbooks.Open(workbook_path)
+File.Visible = True
+Workbook.RefreshAll()
+File.CalculateUntilAsyncQueriesDone()
+Workbook.Save()
+
+
+#Email SF vs. SAP
+Sheet = Workbook.Sheets.Item("Sintesi")
+Copyrange = Sheet.Range('L7:T14')
+Copyrange.CopyPicture(Appearance=1, Format=2)
+
+ImageGrab.grabclipboard().save(dashboard_inflow_canali_prodotti+r"\Condivisi\Dashboard inflow - Confronto SFDC vs. SAP.png')
+
+
+
+
+
+
 
 html_body = """
     <div>

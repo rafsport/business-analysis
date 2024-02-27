@@ -1,0 +1,111 @@
+/* UsageDataByDay */
+
+let
+    Source = Sql.Database("WkiBI.database.windows.net", "WkiBI", [Query="select * from fsu.UsageDataByDay where Giorno >= '2022-01-28'"]),
+    #"Removed Columns" = Table.RemoveColumns(Source,{"RecordsNelGiorno"}),
+    #"Duplicated Column" = Table.DuplicateColumn(#"Removed Columns", "BenId", "BenId - Copy"),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Duplicated Column", "BenId - Copy", Splitter.SplitTextByDelimiter(".", QuoteStyle.Csv), {"BenId - Copy.1", "BenId - Copy.2"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"BenId - Copy.1", Int64.Type}, {"BenId - Copy.2", Int64.Type}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"BenId - Copy.1", "Anna"}}),
+    #"Removed Columns1" = Table.RemoveColumns(#"Renamed Columns",{"BenId - Copy.2"}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Removed Columns1",{{"Anna", type text}})
+in
+    #"Changed Type1"
+
+
+/* UsageDataByDay */
+let
+    Origine = #date(2022, 1, 1),
+    Personalizzato1 = List.Dates(
+        Origine, Number.From(DateTime.LocalNow()) - 1 - Number.From(Origine), #duration(1, 0, 0, 0)
+    ),
+    #"Conversione in tabella" = Table.FromList(
+        Personalizzato1, Splitter.SplitByNothing(), null, null, ExtraValues.Error
+    ),
+    #"Modificato tipo" = Table.TransformColumnTypes(#"Conversione in tabella", {{"Column1", type date}}),
+    #"Rinominate colonne" = Table.RenameColumns(#"Modificato tipo", {{"Column1", "Giorno"}}),
+    #"Inserita settimana dell'anno" = Table.AddColumn(
+        #"Rinominate colonne", "Settimana dell'anno", each Date.WeekOfYear([Giorno]), Int64.Type
+    ),
+    #"Nome del giorno inserito" = Table.AddColumn(
+        #"Inserita settimana dell'anno", "Nome del giorno", each Date.DayOfWeekName([Giorno]), type text
+    ),
+    #"Inserito giorno della settimana" = Table.AddColumn(
+        #"Nome del giorno inserito", "Giorno della settimana", each Date.DayOfWeek([Giorno]) + 1, Int64.Type
+    ),
+    #"Rinominate colonne1" = Table.RenameColumns(#"Inserito giorno della settimana", {{"Settimana dell'anno", "SettimanaAnno"}}),
+    #"Colonna condizionale aggiunta" = Table.AddColumn(
+        #"Rinominate colonne1",
+        "Mese esteso",
+        each
+            if      Date.Month([Giorno]) = 1    then "Gennaio"
+            else if Date.Month([Giorno]) = 2    then "Febbraio"
+            else if Date.Month([Giorno]) = 3    then "Marzo"
+            else if Date.Month([Giorno]) = 4    then "Aprile"
+            else if Date.Month([Giorno]) = 5    then "Maggio"
+            else if Date.Month([Giorno]) = 6    then "Giugno"
+            else if Date.Month([Giorno]) = 7    then "Luglio"
+            else if Date.Month([Giorno]) = 8    then "Agosto"
+            else if Date.Month([Giorno]) = 9    then "Settembre"
+            else if Date.Month([Giorno]) = 10   then "Ottobre"
+            else if Date.Month([Giorno]) = 11   then "Novembre"
+            else if Date.Month([Giorno]) = 12   then "Dicembre"
+            else null
+    ),
+    #"Changed Type" = Table.TransformColumnTypes(#"Colonna condizionale aggiunta",{{"Mese esteso", type text}}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Changed Type",{"Giorno", "Nome del giorno", "Giorno della settimana", "SettimanaAnno", "Mese esteso"}),
+    #"Inserted Start of Month" = Table.AddColumn(#"Reordered Columns", "Start of Month", each Date.StartOfMonth([Giorno]), type date),
+    #"Inserted End of Month" = Table.AddColumn(#"Inserted Start of Month", "End of Month", each Date.EndOfMonth([Giorno]), type date)
+in
+    #"Inserted End of Month"   
+
+
+
+/* SF_Opportunity */
+
+let
+    Source = Salesforce.Data("https://wktaaeu.my.salesforce.com/", [ApiVersion=48]),
+    Opportunity1 = Source{[Name="Opportunity"]}[Data],
+    #"Removed Columns" = Table.RemoveColumns(Opportunity1,{"IsDeleted", "RecordTypeId", "CurrencyIsoCode", "CampaignId", "Pricebook2Id", "SystemModstamp", "FiscalQuarter", "FiscalYear", "Fiscal", "ContactId", "PartnerAccountId", "SyncedQuoteId", "HasOpenActivity", "HasOverdueTask", "Budget_Confirmed__c", "Discovery_Completed__c", "ROI_Analysis_Completed__c", "Approval_Level__c", "Competitor__c", "Demo_Completed__c", "EligibleforSales__c", "Landing_Page__c", "LocalSystemOpportunityId__c", "OpportunityNotes__c", "Owner_Manager_s_Manager__c", "Primary_Quote__c", "Referral_Account__c", "SourceAccountNumber__c", "SourceCountryCode__c", "SourceSystem__c", "Count_Of_Opp_LineItem__c", "Affiliate__c", "Case__c", "Fulfilled__c", "ParentOpportunity__c", "Pending_Review__c", "ProposalSent__c", "Review_Message__c", "Is_Reopened__c", "Converted__c", "HasContact__c", "Order_Status__c", "Approval_Date__c", "Channel_Manager__c", "Manager_of_Channel_Manager__c", "Department__c", "Approver_Level1__c", "Approver_Level2__c", "Commercial_Approver__c", "Financial_Approver2__c", "Owner_s_Manager__c", "Region_Email__c", "Opportunity_Power_of_1__c", "Risk_Reason__c", "Sub_Type__c", "Trial__c", "Manager_of_Manager_of_Channel_Manager__c", "Latest_RFQ_Date_Time__c", "Team__c", "NPS__c", "Survey_Invitation_Link__c", "AAA_Trial_Expiry_Date__c", "AAA_Trial_Extension_Status__c", "AAA_Trial_License_ID__c", "AAA_Trial_Message__c", "AAA_Trial_Start_Date__c", "AAA_Trial_Extension_Allowed__c", "BANTAuthority__c", "BANTBudget__c", "Wallet_Share_When_Won__c", "Wallet_Share_Account__c", "BANTNeed__c", "BANTTiming__c", "LastViewedDate", "LastReferencedDate", "BusinessUnit__c", "Approval_Status__c", "In_Progress_Lines__c", "New_Lines__c", "On_Hold_Lines__c", "Original_Close_Date__c", "Account_Name__c", "Reopening_Window__c", "YoY_Close_Date__c", "YoY_Created_Date__c"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Name", "OpportunityName"}, {"Description", "OpportunityDescription"}}),
+    #"Removed Columns1" = Table.RemoveColumns(#"Renamed Columns",{"ForecastCategoryName"}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Removed Columns1",{{"TotalDiscount__c", "TotalDiscount"}, {"Loss_Reason__c", "LossReason"}, {"weighted_amount__c", "WeightedAmount"}, {"Business_need__c", "BusinessNeed"}, {"Business_Need_Description__c", "BusinessNeedDescription"}, {"Total_Value__c", "TotalValue"}, {"Ingoing_Value__c", "IngoingValue"}, {"Incremental_Amount_On_Premise__c", "IncrementalAmountOnPremise"}, {"Incremental_Amount_Online__c", "IncrementalAmountOnline"}, {"Non_Subscription_Amount__c", "NonSubscriptionAmount"}, {"Subscription_Amount__c", "SubscriptionAmount"}, {"Amount", "OpportunityAmount"}}),
+    #"Filtered Rows" = Table.SelectRows(#"Renamed Columns1", each [CloseDate] >= #date(2023, 1, 1))
+in
+    #"Filtered Rows"
+
+
+
+/* SF_User */
+
+let
+    Source = Salesforce.Data("https://wktaaeu.my.salesforce.com/", [ApiVersion=48, CreateNavigationProperties=true]),
+    User1 = Source{[Name="User"]}[Data],
+    #"Expanded Manager" = Table.ExpandRecordColumn(User1, "Manager", 
+        {"Id", "Username", "Name",  "Division"}, 
+        {"Manager.Id", "Manager.Username", "Manager.Name",  "Manager.Division"}),
+    #"Expanded UserRole" = Table.ExpandRecordColumn(#"Expanded Manager", "UserRole", {"Name"}, {"UserRole.Name"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Expanded UserRole",{{"LastName", "UserLastName"}, {"FirstName", "UserFirstName"}, {"Name", "UserName"}}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Renamed Columns",
+        {{"IsActive", "UserIsActive"}, 
+        {"CountryCode", "UserCountryCode"}, 
+        {"LastLoginDate", "UserLastLoginDate"}, 
+        {"CreatedDate", "UserCreatedDate"}, 
+        {"User_Country_Code__c", "UserCountryCode_c"}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Renamed Columns1",
+        {"Username", "State", "Latitude", "Longitude", "GeocodeAccuracy", "Address", "EmailPreferencesAutoBcc", "EmailPreferencesAutoBccStayInTouch", "EmailPreferencesStayInTouchReminder", "SenderEmail", "SenderName", "Signature", "StayInTouchSubject", "StayInTouchSignature", "StayInTouchNote", "Phone", "Fax", "Alias", "CommunityNickname", "BadgeText", "TimeZoneSidKey", "LocaleSidKey", "ReceivesInfoEmails", "ReceivesAdminInfoEmails", "EmailEncodingKey", "DefaultCurrencyIsoCode", "CurrencyIsoCode", "ProfileId", "UserType", "LanguageLocaleKey", "EmployeeNumber", "DelegatedApproverId", "CreatedById", "LastModifiedDate", "LastModifiedById", "SystemModstamp", "OfflineTrialExpirationDate", "OfflinePdaTrialExpirationDate", "UserPermissionsMarketingUser", "UserPermissionsOfflineUser", "UserPermissionsAvantgoUser", "UserPermissionsCallCenterAutoLogin", "UserPermissionsSFContentUser", "UserPermissionsKnowledgeUser", "UserPermissionsInteractionUser", "UserPermissionsSupportUser", "UserPermissionsLiveAgentUser", "ForecastEnabled", "UserPreferencesActivityRemindersPopup", "UserPreferencesEventRemindersCheckboxDefault", "UserPreferencesTaskRemindersCheckboxDefault", "UserPreferencesReminderSoundOff", "UserPreferencesDisableAllFeedsEmail", "UserPreferencesDisableFollowersEmail", "UserPreferencesDisableProfilePostEmail", "UserPreferencesDisableChangeCommentEmail", "UserPreferencesDisableLaterCommentEmail", "UserPreferencesDisProfPostCommentEmail", "UserPreferencesContentNoEmail", "UserPreferencesContentEmailAsAndWhen", "UserPreferencesApexPagesDeveloperMode", "UserPreferencesReceiveNoNotificationsAsApprover", "UserPreferencesReceiveNotificationsAsDelegatedApprover", "UserPreferencesHideCSNGetChatterMobileTask", "UserPreferencesDisableMentionsPostEmail", "UserPreferencesDisMentionsCommentEmail", "UserPreferencesHideCSNDesktopTask", "UserPreferencesHideChatterOnboardingSplash", "UserPreferencesHideSecondChatterOnboardingSplash", "UserPreferencesDisCommentAfterLikeEmail", "UserPreferencesDisableLikeEmail", "UserPreferencesSortFeedByComment", "UserPreferencesDisableMessageEmail", "UserPreferencesDisableBookmarkEmail", "UserPreferencesDisableSharePostEmail", "UserPreferencesEnableAutoSubForFeeds", "UserPreferencesDisableFileShareNotificationsForApi", "UserPreferencesShowTitleToExternalUsers", "UserPreferencesShowManagerToExternalUsers", "UserPreferencesShowEmailToExternalUsers", "UserPreferencesShowWorkPhoneToExternalUsers", "UserPreferencesShowMobilePhoneToExternalUsers", "UserPreferencesShowFaxToExternalUsers", "UserPreferencesShowStreetAddressToExternalUsers", "UserPreferencesShowCityToExternalUsers", "UserPreferencesShowStateToExternalUsers", "UserPreferencesShowPostalCodeToExternalUsers", "UserPreferencesShowCountryToExternalUsers", "UserPreferencesShowProfilePicToGuestUsers", "UserPreferencesShowTitleToGuestUsers", "UserPreferencesShowCityToGuestUsers", "UserPreferencesShowStateToGuestUsers", "UserPreferencesShowPostalCodeToGuestUsers", "UserPreferencesShowCountryToGuestUsers", "UserPreferencesPipelineViewHideHelpPopover", "UserPreferencesHideS1BrowserUI", "UserPreferencesDisableEndorsementEmail", "UserPreferencesPathAssistantCollapsed", "UserPreferencesCacheDiagnostics", "UserPreferencesShowEmailToGuestUsers", "UserPreferencesShowManagerToGuestUsers", "UserPreferencesShowWorkPhoneToGuestUsers", "UserPreferencesShowMobilePhoneToGuestUsers", "UserPreferencesShowFaxToGuestUsers", "UserPreferencesShowStreetAddressToGuestUsers", "UserPreferencesLightningExperiencePreferred", "UserPreferencesHideEndUserOnboardingAssistantModal", "UserPreferencesHideLightningMigrationModal", "UserPreferencesHideSfxWelcomeMat", "UserPreferencesHideBiggerPhotoCallout", "UserPreferencesGlobalNavBarWTShown", "UserPreferencesGlobalNavGridMenuWTShown", "UserPreferencesCreateLEXAppsWTShown", "UserPreferencesFavoritesWTShown", "UserPreferencesRecordHomeSectionCollapseWTShown", "UserPreferencesRecordHomeReservedWTShown", "UserPreferencesFavoritesShowTopFavorites", "UserPreferencesExcludeMailAppAttachments", "UserPreferencesSuppressTaskSFXReminders", "UserPreferencesSuppressEventSFXReminders", "UserPreferencesPreviewCustomTheme", "UserPreferencesHasCelebrationBadge", "UserPreferencesUserDebugModePref", "UserPreferencesSRHOverrideActivities", "UserPreferencesNewLightningReportRunPageEnabled", "UserPreferencesNativeEmailClient", "ContactId", "AccountId", "CallCenterId", "Extension", "PortalRole", "IsPortalEnabled", "FederationIdentifier", "AboutMe", "FullPhotoUrl", "SmallPhotoUrl", "IsExtIndicatorVisible", "OutOfOfficeMessage", "MediumPhotoUrl", "DigestFrequency", "DefaultGroupNotificationFrequency", "IsPrmSuperUser", "LastViewedDate", "LastReferencedDate", "BannerPhotoUrl", "SmallBannerPhotoUrl", "MediumBannerPhotoUrl", "IsProfilePhotoActive", "IndividualId", "AccountId__c", "TimeTrigger05__c", "WKAAAID__c", "Changeactive__c", "Changeifactive__c", "Recalculate_Sharing__c", "CommunityContext__c", "UserLocalSystemID__c", "Country__c", "Commercial_Approver__c", "Financial_Approver__c", "Send_case_to_3rd_party_integration__c", "NVMContactWorld__MostRecentCallEventTimestamp__c", "NVMContactWorld__MostRecentCallIsActive__c", "NVMContactWorld__MostRecentCall__c", "NVMContactWorld__NVM_Agent_Id__c", "NVMContactWorld__NotesCollapsed__c", "Deactivation_date__c", "dupcheck__dc3DisableDuplicateCheck__c", "AcceptedEventRelations", "Account", "AccountTeams", "Accounts__r", "Approver1__r", "Approver2__r", "Assigned_Resources__r", "AttachedContentDocuments", "AttachedContentNotes", "Badges", "Cases__r", "CombinedAttachments", "Commercial_Approval__r", "Commercial_Approvals__r", "Commercial_Approver__r", "Contact", "ContentDocumentLinks", "ContractsSigned", "ConversationEntries", "CreatedBy", "Data_Usage__r", "DeclinedEventRelations", "DelegatedUsers", "EmailMessageRelations", "EventRelations", "ExternalDataUserAuths", "FeedSubscriptions", "FeedSubscriptionsForEntity", "Feeds", "Financial_Approval__r", "Financial_Approvals__r", "Financial_Approver__r", "GivenThanks", "GroupMembershipRequests", "GroupMemberships", "Individual", "InstalledMobileApps", "LastModifiedBy", "LiveChatTranscriptEvents", "LiveChatTranscripts", "ManagedUsers", "Manager_Approval__r", "NVMContactWorld__Interaction_Events__r", "NVMContactWorld__NewVoiceMedia_Logs__r", "NVMStatsSF__NVM_Agent_Summary__r", "NVMStatsSF__NVM_Call_Segments__r", "NVMStatsSF__NVM_Call_Summaries1__r", "NVMStatsSF__NVM_Call_Summaries__r", "NetworkMemberUsers", "Opportunities1__r", "Opportunities__r", "OpportunitySplits", "OpportunityTeams", "OutgoingEmailRelations", "OwnedContentDocuments", "PermissionSetAssignments", "PermissionSetLicenseAssignments", "PersonRecord", "Profile", "RecordActionHistories", "RecordActions", "ServiceResources", "SessionPermSetActivations", "Shares", "SurveyInvitations", "SurveySubjectEntities", "UndecidedEventRelations", "UserAccountTeams", "UserEntityAccessRights", "UserFieldAccessRights", "UserPreferences", "UserSites", "UserTeams", "VoiceCalls", "Work_Orders__r", "dupcheck__Duplicate_Check_Audits__r", "Street", "City", "PostalCode", "Country", "StateCode", "Email", "MobilePhone", "UserLastName","UserFirstName", "UserCountryCode", "Title"}),
+    #"Filtered Rows" = Table.SelectRows(#"Removed Columns", each ([UserCountryCode_c] = "IT")),
+    
+    #"Colonna condizionale aggiunta" = Table.AddColumn(#"Filtered Rows", "Sales Director", 
+        each if [UserRole.Name] = "IT Large Account Sales Team" then "LARGE ACCOUNT" 
+        else if [UserRole.Name] = "IT Large Accounts" then "LARGE ACCOUNT"  
+        else if [UserRole.Name] = "IT Enterprise Specialists Sales Team" then "Enterprise" 
+        else if [UserRole.Name] = "IT Inside Sales Team" then "INSIDE SALES"
+        else if [UserRole.Name] = "IT North West Sales Team" then "WKIC NORD OVEST" 
+        else if [UserRole.Name] = "IT North East Sales Team" then "WKIC NORD EST" 
+        else if [UserRole.Name] = "IT Central & South Sales Team" then "WKIC CENTRO SUD"
+        else if [UserRole.Name] = "IT Agency and Reseller" then "RETE WKI" 
+        else "Senza attribuz."),
+    #"Changed Type" = Table.TransformColumnTypes(#"Colonna condizionale aggiunta",{{"Sales Director", type text}})
+in
+    #"Changed Type"

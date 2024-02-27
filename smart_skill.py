@@ -142,3 +142,35 @@ try:
         zip_ref.extractall(directory_to_extract_to)
 except:
     print("Invalid file")
+
+
+# Duplicazione file GENYA con cambio Data
+
+estrazioneAnna = "C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaAnna//"
+onlyfiles = [f for f in listdir("C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaAnna") if isfile(join("C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaAnna", f))]
+
+lastFile = onlyfiles[-1]
+lastDatetime = pd.to_datetime(lastFile.split("_")[1].split(".")[0], format='%Y-%m-%d') + pd.Timedelta(7, unit="Day")
+
+anno = lastDatetime.date().year
+mese = lastDatetime.date().month
+giorno = lastDatetime.date().day
+
+anna = pd.read_excel(estrazioneAnna+lastFile)
+anna["Data"] = lastDatetime.date()
+
+anna.to_excel(f"C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaAnna/EstrazioneGenyaAnna_{anno}-{mese:02d}-{giorno:02d}.xlsx", sheet_name="Foglio1", index=False)
+
+
+estrazioneBen = "C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaBen//"
+onlyfiles = [f for f in listdir("C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaBen") if isfile(join("C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaBen", f))]
+
+lastFile = onlyfiles[-1]
+
+ben = pd.read_excel(estrazioneBen+lastFile)
+ben["Data"] = lastDatetime.date()
+
+for col in ben.select_dtypes(include=[int,float]).columns:
+    ben[col] = ben[col].astype(str)
+
+ben.to_excel(f"C:/Users/Raffaele.Sportiello/OneDrive - Wolters Kluwer/Documents/E-commerce/Data source/EstrazioneGenyaBen/EstrazioneGenyaBen_{anno}-{mese:02d}-{giorno:02d}.xlsx", sheet_name="Foglio1", index=False)
